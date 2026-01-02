@@ -1,12 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { storage } from '../utils/storage'
+import { useFinance } from '../context/FinanceContext'
 
 const Chat = () => {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const messagesEndRef = useRef(null)
+  const isProcessingRef = useRef(false) // Prevent duplicate API calls
+  
+  // Get financial context
+  const finance = useFinance()
 
   useEffect(() => {
     // Load chat history
@@ -39,22 +44,24 @@ const Chat = () => {
   }
 
   const sendMessage = async () => {
-    if (!input.trim()) return
+    if (!input.trim() || isProcessingRef.current) return
 
-    const userMessage = {
-      role: 'user',
-      content: input.trim(),
-    }
-
-    // Immediately add user's message to UI and local storage
-    setMessages((prev) => {
-      const next = [...prev, userMessage]
-      storage.saveChatMessage(userMessage)
-      return next
-    })
+    // Prevent duplicate calls
+    isProcessingRef.current = true
 
     const userInput = input.trim()
+    const userMessage = {
+      role: 'user',
+      content: userInput,
+    }
+
+    // Clear input immediately
     setInput('')
+    
+    // Add user message to UI and storage
+    setMessages((prev) => [...prev, userMessage])
+    storage.saveChatMessage(userMessage)
+    
     setIsTyping(true)
 
     try {
@@ -71,25 +78,59 @@ const Chat = () => {
       const hasURL = detectURL(userInput)
       const purchaseIntent = detectPurchaseIntent(userInput)
 
-      // Build enhanced system prompt based on context (do NOT change this per request)
+      // Build financial context summary
+      const { 
+        monthlyBudget, 
+        remainingBudget, 
+        totalSpent,
+        percentUsed,
+        getRecentSpendingLevel 
+      } = finance
+      
+      const recentSpendingLevel = getRecentSpendingLevel()
+      
+      let financialContext = ''
+      if (monthlyBudget > 0) {
+        financialContext = `
+
+Financial Context (for your awareness, not to mention unless relevant):
+- Monthly income: $${monthlyBudget.toFixed(0)}
+- Spent so far: $${totalSpent.toFixed(0)}
+- Remaining: $${remainingBudget.toFixed(0)}
+- Recent spending: ${recentSpendingLevel}
+${percentUsed > 90 ? '- Budget is tight right now' : percentUsed > 70 ? '- Budget getting tighter' : '- Budget has breathing room'}
+
+Use this context when the user talks about buying something or asks about their spending.
+Keep responses grounded in their actual situation.
+`
+      }
+
+      // Build enhanced system prompt based on context
       let systemPrompt = `
-You are a calm, grounded reflection companion inside a financial wellness app.
+You are Zenos, a calm financial wellness companion.
 
 Your role:
-- Help the user make clearer, calmer decisions around spending
+- Help users make clearer, calmer decisions around spending
 - Reduce stress and mental load
 - Be practical, human, and emotionally aware
+- Provide grounded perspective using their actual financial situation
 
 Rules:
-- Be brief and direct
+- Be brief and direct (1-3 sentences)
 - No moral judgment
 - No lectures
-- No financial advice language
-- Focus on awareness and relief, not optimization
-- Speak like a calm, smart friend
+- No financial advisor language
+- Focus on awareness, not optimization
+- Speak like a calm, smart friend who sees the numbers
 
-You may use multiple short sentences if helpful.
-Avoid filler. Avoid therapy clichés.
+When they mention buying something:
+- Consider their remaining budget
+- Note their recent spending pattern
+- Respond with calm awareness, never pressure
+
+${financialContext}
+
+Avoid filler. Avoid therapy clichés. Be human.
 `
 
       // Add context for URL detection
@@ -143,20 +184,15 @@ Avoid filler. Avoid therapy clichés.
       `
       }
 
-      // Build context array including the latest user message so the assistant has memory
-      // Use the current state messages plus the new userMessage (state update above may be async),
-      // so construct context explicitly to ensure latest entries are included.
-      const currentHistory = storage.getChatHistory() || messages || []
-      // If storage returned empty but messages state has content, use messages as fallback
-      const baseHistory = currentHistory.length ? currentHistory : messages
-      // Combine and ensure we include the freshly created userMessage (in case storage lag)
-      const combined = [...baseHistory, userMessage]
-
-      // Keep last N messages for context (including both user and assistant)
-      const contextMessages = combined.slice(-12).map((m) => ({
-        role: m.role,
-        content: m.content,
-      }))
+      // Build conversation context - use current messages state which already includes the new message
+      // Keep last 10 messages for context (including both user and assistant)
+      const contextMessages = messages
+        .concat([userMessage]) // Include the message we just added
+        .slice(-10)
+        .map((m) => ({
+          role: m.role,
+          content: m.content,
+        }))
 
       // Call DeepSeek API
       const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
@@ -197,16 +233,9 @@ Avoid filler. Avoid therapy clichés.
           content: data.choices[0].message.content,
         }
 
-        setMessages((prev) => {
-          const next = [...prev, aiMessage]
-          storage.saveChatMessage(aiMessage)
-          return next
-        })
-
-        // Optionally handle purchase decision actions here (e.g., flagging, auto-add)
-        if (purchaseIntent === 'bought') {
-          // Future hook: auto-populate expense entry or show "Add to expenses?" CTA
-        }
+        // Add AI response to UI and storage
+        setMessages((prev) => [...prev, aiMessage])
+        storage.saveChatMessage(aiMessage)
       } else {
         throw new Error('Invalid response from API')
       }
@@ -217,13 +246,13 @@ Avoid filler. Avoid therapy clichés.
         role: 'assistant',
         content: "I'm having trouble connecting right now. Take a moment to breathe.",
       }
-      setMessages((prev) => {
-        const next = [...prev, errorMessage]
-        storage.saveChatMessage(errorMessage)
-        return next
-      })
+      
+      // Add error message to UI and storage
+      setMessages((prev) => [...prev, errorMessage])
+      storage.saveChatMessage(errorMessage)
     } finally {
       setIsTyping(false)
+      isProcessingRef.current = false // Reset processing flag
     }
   }
 
@@ -238,10 +267,10 @@ Avoid filler. Avoid therapy clichés.
       <div className="px-6 py-6 border-b border-sage-100 flex items-center justify-between">
         <div>
           <h1 className="text-2xl text-sage-700 font-light">
-            Reflection companion
+            Zenos
           </h1>
           <p className="text-sage-500 text-sm mt-1">
-            Here to listen, not advise
+            Your financial wellness companion
           </p>
         </div>
         {messages.length > 0 && (

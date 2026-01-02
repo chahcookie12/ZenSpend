@@ -1,167 +1,218 @@
-// LocalStorage utilities for ZenSpend
+// LocalStorage utilities for ZenSpend - User-scoped storage
 
-const STORAGE_KEYS = {
-  EXPENSES: 'zenspend_expenses',
-  CHECK_INS: 'zenspend_checkins',
-  REFLECTIONS: 'zenspend_reflections',
-  CHAT_HISTORY: 'zenspend_chat_history',
-  SETTINGS: 'zenspend_settings',
-  MONTHLY_BUDGET: 'zenspend_monthly_budget',
-  FIXED_EXPENSES: 'zenspend_fixed_expenses',
+// Get current authenticated user
+const getCurrentUser = () => {
+  return localStorage.getItem('zenspend_currentUser')
+}
+
+// Get all user data
+const getUserData = () => {
+  try {
+    const data = localStorage.getItem('zenSpendData')
+    return data ? JSON.parse(data) : {}
+  } catch {
+    return {}
+  }
+}
+
+// Save all user data
+const saveUserData = (data) => {
+  localStorage.setItem('zenSpendData', JSON.stringify(data))
+}
+
+// Get current user's data object
+const getCurrentUserData = () => {
+  const currentUser = getCurrentUser()
+  if (!currentUser) return null
+  
+  const allData = getUserData()
+  if (!allData[currentUser]) {
+    // Initialize if doesn't exist
+    allData[currentUser] = {
+      expenses: [],
+      chatHistory: [],
+      checkIns: [],
+      reflections: [],
+      settings: {},
+      monthlyBudget: 0,
+      fixedExpenses: []
+    }
+    saveUserData(allData)
+  }
+  
+  return allData[currentUser]
+}
+
+// Update current user's data
+const updateCurrentUserData = (updates) => {
+  const currentUser = getCurrentUser()
+  if (!currentUser) return
+  
+  const allData = getUserData()
+  allData[currentUser] = {
+    ...allData[currentUser],
+    ...updates
+  }
+  saveUserData(allData)
 }
 
 export const storage = {
   // Expenses
   getExpenses: () => {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEYS.EXPENSES) || '[]')
-    } catch {
-      return []
-    }
+    const userData = getCurrentUserData()
+    return userData ? userData.expenses : []
   },
   
   saveExpense: (expense) => {
-    const expenses = storage.getExpenses()
+    const userData = getCurrentUserData()
+    if (!userData) return null
+    
     const newExpense = {
       id: Date.now().toString(),
       date: new Date().toISOString(),
       ...expense,
     }
-    expenses.push(newExpense)
-    localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(expenses))
+    userData.expenses.push(newExpense)
+    updateCurrentUserData({ expenses: userData.expenses })
     return newExpense
   },
 
   deleteExpense: (id) => {
-    const expenses = storage.getExpenses().filter(e => e.id !== id)
-    localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(expenses))
+    const userData = getCurrentUserData()
+    if (!userData) return
+    
+    userData.expenses = userData.expenses.filter(e => e.id !== id)
+    updateCurrentUserData({ expenses: userData.expenses })
   },
 
   // Check-ins (emotional state)
   getCheckIns: () => {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEYS.CHECK_INS) || '[]')
-    } catch {
-      return []
-    }
+    const userData = getCurrentUserData()
+    return userData ? userData.checkIns : []
   },
 
   saveCheckIn: (checkIn) => {
-    const checkIns = storage.getCheckIns()
+    const userData = getCurrentUserData()
+    if (!userData) return null
+    
     const newCheckIn = {
       id: Date.now().toString(),
       date: new Date().toISOString(),
       ...checkIn,
     }
-    checkIns.push(newCheckIn)
-    localStorage.setItem(STORAGE_KEYS.CHECK_INS, JSON.stringify(checkIns))
+    userData.checkIns.push(newCheckIn)
+    updateCurrentUserData({ checkIns: userData.checkIns })
     return newCheckIn
   },
 
   // Reflections (pause before buying)
   getReflections: () => {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEYS.REFLECTIONS) || '[]')
-    } catch {
-      return []
-    }
+    const userData = getCurrentUserData()
+    return userData ? userData.reflections : []
   },
 
   saveReflection: (reflection) => {
-    const reflections = storage.getReflections()
+    const userData = getCurrentUserData()
+    if (!userData) return null
+    
     const newReflection = {
       id: Date.now().toString(),
       date: new Date().toISOString(),
       ...reflection,
     }
-    reflections.push(newReflection)
-    localStorage.setItem(STORAGE_KEYS.REFLECTIONS, JSON.stringify(reflections))
+    userData.reflections.push(newReflection)
+    updateCurrentUserData({ reflections: userData.reflections })
     return newReflection
   },
 
   // Chat history
   getChatHistory: () => {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEYS.CHAT_HISTORY) || '[]')
-    } catch {
-      return []
-    }
+    const userData = getCurrentUserData()
+    return userData ? userData.chatHistory : []
   },
 
   saveChatMessage: (message) => {
-    const history = storage.getChatHistory()
-    history.push({
+    const userData = getCurrentUserData()
+    if (!userData) return
+    
+    userData.chatHistory.push({
       id: Date.now().toString(),
       timestamp: new Date().toISOString(),
       ...message,
     })
-    localStorage.setItem(STORAGE_KEYS.CHAT_HISTORY, JSON.stringify(history))
+    updateCurrentUserData({ chatHistory: userData.chatHistory })
   },
 
   clearChatHistory: () => {
-    localStorage.setItem(STORAGE_KEYS.CHAT_HISTORY, JSON.stringify([]))
+    const userData = getCurrentUserData()
+    if (!userData) return
+    
+    userData.chatHistory = []
+    updateCurrentUserData({ chatHistory: [] })
   },
 
   // Settings
   getSettings: () => {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEYS.SETTINGS) || '{}')
-    } catch {
-      return {}
-    }
+    const userData = getCurrentUserData()
+    return userData ? userData.settings : {}
   },
 
   saveSetting: (key, value) => {
-    const settings = storage.getSettings()
-    settings[key] = value
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings))
+    const userData = getCurrentUserData()
+    if (!userData) return
+    
+    userData.settings[key] = value
+    updateCurrentUserData({ settings: userData.settings })
   },
 
   // Monthly Budget
   getMonthlyBudget: () => {
-    try {
-      const budget = localStorage.getItem(STORAGE_KEYS.MONTHLY_BUDGET)
-      return budget ? parseFloat(budget) : 0
-    } catch {
-      return 0
-    }
+    const userData = getCurrentUserData()
+    return userData ? (userData.monthlyBudget || 0) : 0
   },
 
   saveMonthlyBudget: (amount) => {
-    localStorage.setItem(STORAGE_KEYS.MONTHLY_BUDGET, amount.toString())
+    const userData = getCurrentUserData()
+    if (!userData) return
+    
+    updateCurrentUserData({ monthlyBudget: parseFloat(amount) || 0 })
   },
 
   // Fixed Expenses
   getFixedExpenses: () => {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEYS.FIXED_EXPENSES) || '[]')
-    } catch {
-      return []
-    }
+    const userData = getCurrentUserData()
+    return userData ? userData.fixedExpenses : []
   },
 
   saveFixedExpense: (expense) => {
-    const expenses = storage.getFixedExpenses()
+    const userData = getCurrentUserData()
+    if (!userData) return null
+    
     const newExpense = {
       id: Date.now().toString(),
       ...expense,
     }
-    expenses.push(newExpense)
-    localStorage.setItem(STORAGE_KEYS.FIXED_EXPENSES, JSON.stringify(expenses))
+    userData.fixedExpenses.push(newExpense)
+    updateCurrentUserData({ fixedExpenses: userData.fixedExpenses })
     return newExpense
   },
 
   updateFixedExpense: (id, updates) => {
-    const expenses = storage.getFixedExpenses()
-    const index = expenses.findIndex(e => e.id === id)
+    const userData = getCurrentUserData()
+    if (!userData) return
+    
+    const index = userData.fixedExpenses.findIndex(e => e.id === id)
     if (index !== -1) {
-      expenses[index] = { ...expenses[index], ...updates }
-      localStorage.setItem(STORAGE_KEYS.FIXED_EXPENSES, JSON.stringify(expenses))
+      userData.fixedExpenses[index] = { ...userData.fixedExpenses[index], ...updates }
+      updateCurrentUserData({ fixedExpenses: userData.fixedExpenses })
     }
   },
 
   deleteFixedExpense: (id) => {
-    const expenses = storage.getFixedExpenses().filter(e => e.id !== id)
-    localStorage.setItem(STORAGE_KEYS.FIXED_EXPENSES, JSON.stringify(expenses))
+    const userData = getCurrentUserData()
+    if (!userData) return
+    
+    userData.fixedExpenses = userData.fixedExpenses.filter(e => e.id !== id)
+    updateCurrentUserData({ fixedExpenses: userData.fixedExpenses })
   },
 }

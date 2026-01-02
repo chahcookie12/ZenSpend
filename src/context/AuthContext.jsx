@@ -2,6 +2,67 @@ import { createContext, useContext, useState, useEffect } from 'react'
 
 const AuthContext = createContext(null)
 
+// Helper functions for managing users
+const getUsers = () => {
+  try {
+    const users = localStorage.getItem('zenspend_users')
+    return users ? JSON.parse(users) : {}
+  } catch {
+    return {}
+  }
+}
+
+const saveUsers = (users) => {
+  localStorage.setItem('zenspend_users', JSON.stringify(users))
+}
+
+const getCurrentUser = () => {
+  return localStorage.getItem('zenspend_currentUser')
+}
+
+const setCurrentUser = (email) => {
+  if (email) {
+    localStorage.setItem('zenspend_currentUser', email)
+  } else {
+    localStorage.removeItem('zenspend_currentUser')
+  }
+}
+
+// Initialize user data structure
+const initializeUserData = (email) => {
+  try {
+    const allData = localStorage.getItem('zenSpendData')
+    const zenSpendData = allData ? JSON.parse(allData) : {}
+    
+    if (!zenSpendData[email]) {
+      zenSpendData[email] = {
+        expenses: [],
+        chatHistory: [],
+        checkIns: [],
+        reflections: [],
+        settings: {},
+        monthlyBudget: 0,
+        fixedExpenses: []
+      }
+      localStorage.setItem('zenSpendData', JSON.stringify(zenSpendData))
+    }
+  } catch {
+    // Initialize fresh if there's an error
+    const zenSpendData = {
+      [email]: {
+        expenses: [],
+        chatHistory: [],
+        checkIns: [],
+        reflections: [],
+        settings: {},
+        monthlyBudget: 0,
+        fixedExpenses: []
+      }
+    }
+    localStorage.setItem('zenSpendData', JSON.stringify(zenSpendData))
+  }
+}
+
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState(null)
@@ -9,48 +70,69 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // Check authentication status on mount
-    const authStatus = localStorage.getItem('isAuthenticated')
-    const userData = localStorage.getItem('user')
+    const currentUserEmail = getCurrentUser()
     
-    if (authStatus === 'true' && userData) {
-      setIsAuthenticated(true)
-      setUser(JSON.parse(userData))
+    if (currentUserEmail) {
+      const users = getUsers()
+      const userData = users[currentUserEmail]
+      
+      if (userData) {
+        setUser({ email: currentUserEmail, ...userData })
+        setIsAuthenticated(true)
+      } else {
+        // Clean up invalid session
+        setCurrentUser(null)
+      }
     }
     
     setLoading(false)
   }, [])
 
   const signUp = (email, password) => {
+    const users = getUsers()
+    
+    // Check if user already exists
+    if (users[email]) {
+      return {
+        success: false,
+        message: "This email is already in use. Try signing in instead."
+      }
+    }
+    
+    // Create new user
     const userData = {
-      email,
       password,
       createdAt: new Date().toISOString()
     }
     
-    localStorage.setItem('user', JSON.stringify(userData))
-    localStorage.setItem('isAuthenticated', 'true')
+    users[email] = userData
+    saveUsers(users)
     
-    setUser(userData)
+    // Initialize empty data for this user
+    initializeUserData(email)
+    
+    // Set as current user
+    setCurrentUser(email)
+    setUser({ email, ...userData })
     setIsAuthenticated(true)
     
     return { success: true }
   }
 
   const signIn = (email, password) => {
-    const storedUser = localStorage.getItem('user')
+    const users = getUsers()
+    const userData = users[email]
     
-    if (!storedUser) {
+    if (!userData) {
       return { 
         success: false, 
         message: "That didn't work. Take a breath and try again." 
       }
     }
-
-    const userData = JSON.parse(storedUser)
     
-    if (userData.email === email && userData.password === password) {
-      localStorage.setItem('isAuthenticated', 'true')
-      setUser(userData)
+    if (userData.password === password) {
+      setCurrentUser(email)
+      setUser({ email, ...userData })
       setIsAuthenticated(true)
       return { success: true }
     }
@@ -62,7 +144,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   const signOut = () => {
-    localStorage.setItem('isAuthenticated', 'false')
+    setCurrentUser(null)
     setUser(null)
     setIsAuthenticated(false)
   }

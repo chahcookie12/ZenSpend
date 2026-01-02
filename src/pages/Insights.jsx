@@ -8,6 +8,7 @@ const Insights = () => {
   const [expenses, setExpenses] = useState([])
   const [fixedExpenses, setFixedExpenses] = useState([])
   const [monthlyBudget, setMonthlyBudget] = useState(0)
+  const [selectedMonth, setSelectedMonth] = useState(new Date())
 
   useEffect(() => {
     setReflections(storage.getReflections())
@@ -45,29 +46,46 @@ const Insights = () => {
     return days
   }
 
-  // Get last 4 weeks of spending
-  const getMonthlyWeeks = () => {
+  // Get weeks within the selected month
+  const getMonthlySpending = (month) => {
     const weeks = []
-    const today = new Date()
+    const year = month.getFullYear()
+    const monthIndex = month.getMonth()
     
-    for (let i = 3; i >= 0; i--) {
-      const weekStart = new Date(today)
-      weekStart.setDate(weekStart.getDate() - (i * 7) - 6)
+    // Get first and last day of the month
+    const firstDay = new Date(year, monthIndex, 1)
+    const lastDay = new Date(year, monthIndex + 1, 0)
+    
+    // Calculate number of weeks in this month
+    const firstDayOfWeek = firstDay.getDay() // 0 = Sunday
+    const daysInMonth = lastDay.getDate()
+    const totalDays = daysInMonth + firstDayOfWeek
+    const numberOfWeeks = Math.ceil(totalDays / 7)
+    
+    // Group expenses by week
+    for (let weekNum = 0; weekNum < numberOfWeeks; weekNum++) {
+      // Calculate week start (Sunday)
+      const weekStart = new Date(year, monthIndex, 1 - firstDayOfWeek + (weekNum * 7))
       weekStart.setHours(0, 0, 0, 0)
       
+      // Calculate week end (Saturday)
       const weekEnd = new Date(weekStart)
       weekEnd.setDate(weekEnd.getDate() + 6)
       weekEnd.setHours(23, 59, 59, 999)
       
+      // Filter expenses within this week AND within the month
       const weekExpenses = expenses.filter(e => {
         const expenseDate = new Date(e.date)
-        return expenseDate >= weekStart && expenseDate <= weekEnd
+        return expenseDate >= weekStart && 
+               expenseDate <= weekEnd &&
+               expenseDate.getMonth() === monthIndex &&
+               expenseDate.getFullYear() === year
       })
       
       const total = weekExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0)
       
       weeks.push({
-        label: i === 0 ? 'This week' : `${i + 1}w ago`,
+        label: `Week ${weekNum + 1}`,
         amount: total,
       })
     }
@@ -76,9 +94,9 @@ const Insights = () => {
   }
 
   const weeklyData = getWeeklySpending()
-  const monthlyWeeks = getMonthlyWeeks()
+  const monthlyData = getMonthlySpending(selectedMonth)
   const maxDaily = Math.max(...weeklyData.map(d => d.amount), 1)
-  const maxWeekly = Math.max(...monthlyWeeks.map(w => w.amount), 1)
+  const maxMonthly = Math.max(...monthlyData.map(w => w.amount), 1)
 
   // Calculate wellbeing indicator
   const getWellbeingState = () => {
@@ -278,39 +296,70 @@ const Insights = () => {
           </motion.div>
         )}
 
-        {/* Monthly Overview */}
-        {expenses.length > 7 && (
+        {/* Monthly Spending Rhythm */}
+        {expenses.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
             className="bg-cream-100 rounded-3xl p-8 space-y-6"
           >
-            <div>
-              <h3 className="text-xs text-sage-600 font-medium uppercase tracking-wide">
-                Monthly flow
-              </h3>
-              <p className="text-sage-500 text-sm mt-1">
-                Weekly spending trend
-              </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xs text-sage-600 font-medium uppercase tracking-wide">
+                  This month's rhythm
+                </h3>
+                <p className="text-sage-500 text-sm mt-1">
+                  Weekly spending pattern
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    const newMonth = new Date(selectedMonth)
+                    newMonth.setMonth(newMonth.getMonth() - 1)
+                    setSelectedMonth(newMonth)
+                  }}
+                  className="text-sage-500 hover:text-sage-700 transition-colors"
+                  aria-label="Previous month"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <span className="text-sage-600 text-sm font-light min-w-[80px] text-center">
+                  {selectedMonth.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                </span>
+                <button
+                  onClick={() => {
+                    const newMonth = new Date(selectedMonth)
+                    newMonth.setMonth(newMonth.getMonth() + 1)
+                    setSelectedMonth(newMonth)
+                  }}
+                  className="text-sage-500 hover:text-sage-700 transition-colors"
+                  aria-label="Next month"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
             </div>
             
-            <div className="flex items-end justify-between gap-3 h-32">
-              {monthlyWeeks.map((week, index) => (
-                <div key={index} className="flex-1 flex flex-col items-center gap-2 h-full">
-                  <div className="flex-1 w-full flex items-end">
-                    <div
-                      className="w-full bg-sage-400 rounded-t-lg transition-all duration-500"
-                      style={{ height: `${(week.amount / maxWeekly) * 100}%` }}
-                    />
+            <div className="space-y-3">
+              {monthlyData.map((week, index) => (
+                <div key={index} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs text-sage-600">
+                    <span>{week.label}</span>
+                    <span className="font-light">
+                      {week.amount > 0 ? `$${week.amount.toFixed(0)}` : '—'}
+                    </span>
                   </div>
-                  <div className="text-center">
-                    <p className="text-sage-700 text-xs font-light">
-                      ${week.amount.toFixed(0)}
-                    </p>
-                    <p className="text-sage-500 text-xs mt-0.5">
-                      {week.label}
-                    </p>
+                  <div className="h-2 bg-sage-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-sage-400 rounded-full transition-all duration-500"
+                      style={{ width: `${(week.amount / maxMonthly) * 100}%` }}
+                    />
                   </div>
                 </div>
               ))}

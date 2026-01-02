@@ -123,7 +123,7 @@ const Insights = () => {
     if (percentUsed > 90 || hasSpike) {
       return {
         state: 'Heavy',
-        message: 'Money feels a little heavier this week.',
+        message: 'Money feels light this week.',
         subtext: 'Would you like to pause and reflect?',
       }
     } else if (percentUsed > 70) {

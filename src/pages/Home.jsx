@@ -156,7 +156,7 @@ const Home = ({ onStartBreathing }) => {
                 45-second breathing exercise
               </p>
             </div>
-            <span className="text-4xl">◉</span>
+            <span className="text-4xl text-sage-600">◉</span>
           </div>
         </motion.button>
 

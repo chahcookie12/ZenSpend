@@ -211,7 +211,7 @@ const Pause = () => {
               className="w-full max-w-md space-y-12"
             >
               <h2 className="text-3xl text-sage-700 font-light text-center">
-                How much does it cost?
+                What do you want to buy?
               </h2>
 
               <div className="space-y-6">

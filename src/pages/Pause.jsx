@@ -1,59 +1,57 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { storage } from '../utils/storage'
+import ShortBreathing from '../components/ShortBreathing'
 
 const Pause = () => {
-  const [step, setStep] = useState(0)
+  // State management
+  const [step, setStep] = useState(0) // Single source of truth
+  const [itemName, setItemName] = useState('')
+  const [itemPrice, setItemPrice] = useState('')
   const [responses, setResponses] = useState({})
   const [decision, setDecision] = useState(null)
-  const [itemName, setItemName] = useState('')
 
-  const steps = [
-    {
-      id: 'item',
-      question: "What are you thinking about?",
-      type: 'text',
-      placeholder: 'Type the item or experience...',
-    },
+  // Define steps explicitly
+  const STEPS = {
+    PRICE_INPUT: 0,
+    REFLECTION_1: 1,
+    REFLECTION_2: 2,
+    BREATHING: 3,
+    DECISION: 4,
+  }
+
+  const reflectionQuestions = [
     {
       id: 'need',
       question: "Is this a need or a want?",
-      type: 'choice',
       options: ['Need', 'Want', 'Not sure'],
-    },
-    {
-      id: 'feeling',
-      question: "How does this feel right now?",
-      type: 'choice',
-      options: ['Exciting', 'Necessary', 'Uncertain', 'Impulsive', 'Peaceful'],
     },
     {
       id: 'emotion',
       question: "What emotion is present?",
-      type: 'choice',
       options: ['Joy', 'Stress', 'Fear', 'Hope', 'Pressure', 'Calm'],
-    },
-    {
-      id: 'wait',
-      question: "Could this wait a day?",
-      type: 'choice',
-      options: ['Yes', 'No', 'Maybe'],
     },
   ]
 
-  const handleResponse = (value) => {
-    const currentStep = steps[step]
-    setResponses({ ...responses, [currentStep.id]: value })
-    
-    if (currentStep.id === 'item') {
-      setItemName(value)
-    }
+  // Handlers
+  const handlePriceSubmit = () => {
+    if (!itemPrice.trim()) return
+    setStep(STEPS.REFLECTION_1) // Move to first reflection
+  }
 
-    if (step < steps.length - 1) {
-      setTimeout(() => setStep(step + 1), 300)
-    } else {
-      setTimeout(() => setStep(step + 1), 300)
+  const handleReflectionResponse = (questionId, value) => {
+    setResponses({ ...responses, [questionId]: value })
+    
+    // Determine next step
+    if (step === STEPS.REFLECTION_1) {
+      setTimeout(() => setStep(STEPS.REFLECTION_2), 300)
+    } else if (step === STEPS.REFLECTION_2) {
+      setTimeout(() => setStep(STEPS.BREATHING), 300)
     }
+  }
+
+  const handleBreathingComplete = () => {
+    setStep(STEPS.DECISION) // Move to final decision
   }
 
   const handleDecision = (choice) => {
@@ -61,32 +59,40 @@ const Pause = () => {
     
     // Save reflection
     storage.saveReflection({
-      item: itemName,
+      item: itemName || 'Purchase',
+      price: parseFloat(itemPrice) || 0,
       responses,
       decision: choice,
     })
 
     // Add to expenses if purchased
     if (choice === 'bought') {
-      // Will prompt for amount on Expenses page
+      storage.saveExpense({
+        description: itemName || 'Reflected purchase',
+        amount: parseFloat(itemPrice) || 0,
+        fromReflection: true,
+      })
     }
 
-    // Reset after delay
+    // Auto-reset after showing confirmation
     setTimeout(() => {
-      setStep(0)
+      setStep(STEPS.PRICE_INPUT)
+      setItemName('')
+      setItemPrice('')
       setResponses({})
       setDecision(null)
-      setItemName('')
     }, 3000)
   }
 
   const handleReset = () => {
-    setStep(0)
+    setStep(STEPS.PRICE_INPUT)
+    setItemName('')
+    setItemPrice('')
     setResponses({})
     setDecision(null)
-    setItemName('')
   }
 
+  // RENDER: Confirmation screen (after decision)
   if (decision) {
     return (
       <motion.div
@@ -106,7 +112,9 @@ const Pause = () => {
           </motion.div>
           <div className="space-y-2">
             <p className="text-2xl text-sage-700 font-light">
-              {decision === 'bought' ? 'Noted' : 'Well done'}
+              {decision === 'bought' 
+                ? 'Thanks for checking in with yourself.' 
+                : 'That pause mattered.'}
             </p>
             <p className="text-sage-500 text-base">
               {decision === 'bought' 
@@ -119,7 +127,13 @@ const Pause = () => {
     )
   }
 
-  if (step === steps.length) {
+  // RENDER: Breathing exercise
+  if (step === STEPS.BREATHING) {
+    return <ShortBreathing onComplete={handleBreathingComplete} />
+  }
+
+  // RENDER: Final decision
+  if (step === STEPS.DECISION) {
     return (
       <motion.div
         initial={{ opacity: 0 }}
@@ -165,73 +179,109 @@ const Pause = () => {
     )
   }
 
-  const currentStep = steps[step]
+  // RENDER: Price input or Reflection questions
+  const totalSteps = 1 + reflectionQuestions.length // Price + reflections
+  const progressSteps = Math.min(step + 1, totalSteps)
 
   return (
     <div className="h-full flex flex-col">
-      {/* Progress */}
+      {/* Progress bar */}
       <div className="px-6 pt-6">
         <div className="flex gap-1 max-w-md mx-auto">
-          {steps.map((_, idx) => (
+          {[...Array(totalSteps)].map((_, idx) => (
             <div
               key={idx}
               className={`h-1 flex-1 rounded-full transition-all duration-500 ${
-                idx <= step ? 'bg-sage-400' : 'bg-sage-100'
+                idx < progressSteps ? 'bg-sage-400' : 'bg-sage-100'
               }`}
             />
           ))}
         </div>
       </div>
 
-      {/* Question */}
+      {/* Content */}
       <div className="flex-1 flex items-center justify-center p-8">
         <AnimatePresence mode="wait">
-          <motion.div
-            key={step}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="w-full max-w-md space-y-12"
-          >
-            <h2 className="text-3xl text-sage-700 font-light text-center">
-              {currentStep.question}
-            </h2>
+          {step === STEPS.PRICE_INPUT && (
+            <motion.div
+              key="price"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="w-full max-w-md space-y-12"
+            >
+              <h2 className="text-3xl text-sage-700 font-light text-center">
+                How much does it cost?
+              </h2>
 
-            {currentStep.type === 'text' && (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <input
                   type="text"
-                  value={responses[currentStep.id] || ''}
-                  onChange={(e) => setResponses({ ...responses, [currentStep.id]: e.target.value })}
-                  placeholder={currentStep.placeholder}
+                  value={itemName}
+                  onChange={(e) => setItemName(e.target.value)}
+                  placeholder="Item name (optional)"
                   className="w-full bg-cream-100 text-sage-700 text-lg rounded-3xl py-6 px-8 focus:outline-none focus:ring-2 focus:ring-sage-300 transition-all"
                   autoFocus
                 />
+                <div className="relative">
+                  <span className="absolute left-8 top-1/2 transform -translate-y-1/2 text-sage-500 text-xl">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={itemPrice}
+                    onChange={(e) => setItemPrice(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full pl-14 pr-8 bg-cream-100 text-sage-700 text-2xl rounded-3xl py-6 focus:outline-none focus:ring-2 focus:ring-sage-300 transition-all"
+                  />
+                </div>
                 <button
-                  onClick={() => handleResponse(responses[currentStep.id] || '')}
-                  disabled={!responses[currentStep.id]?.trim()}
+                  onClick={handlePriceSubmit}
+                  disabled={!itemPrice.trim()}
                   className="w-full bg-sage-500 hover:bg-sage-600 text-white rounded-3xl py-6 text-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                 >
                   Continue
                 </button>
               </div>
-            )}
+            </motion.div>
+          )}
 
-            {currentStep.type === 'choice' && (
-              <div className="space-y-3">
-                {currentStep.options.map((option) => (
-                  <motion.button
-                    key={option}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleResponse(option)}
-                    className="w-full bg-cream-100 hover:bg-sage-100 text-sage-700 rounded-3xl py-6 px-8 text-lg transition-colors"
-                  >
-                    {option}
-                  </motion.button>
-                ))}
-              </div>
-            )}
-          </motion.div>
+          {(step === STEPS.REFLECTION_1 || step === STEPS.REFLECTION_2) && (
+            <motion.div
+              key={`reflection-${step}`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="w-full max-w-md space-y-12"
+            >
+              {(() => {
+                const questionIndex = step - STEPS.REFLECTION_1
+                const question = reflectionQuestions[questionIndex]
+                
+                return (
+                  <>
+                    <h2 className="text-3xl text-sage-700 font-light text-center">
+                      {question.question}
+                    </h2>
+
+                    <div className="space-y-3">
+                      {question.options.map((option) => (
+                        <motion.button
+                          key={option}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => handleReflectionResponse(question.id, option)}
+                          className="w-full bg-cream-100 hover:bg-sage-100 text-sage-700 rounded-3xl py-6 px-8 text-lg transition-colors"
+                        >
+                          {option}
+                        </motion.button>
+                      ))}
+                    </div>
+                  </>
+                )
+              })()}
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
 
@@ -248,4 +298,3 @@ const Pause = () => {
 }
 
 export default Pause
-

@@ -120,13 +120,13 @@ const Insights = () => {
     const lastTwoDays = lastWeek.slice(-2).reduce((sum, d) => sum + d.amount, 0) / 2
     const hasSpike = lastTwoDays > weekAvg * 2
     
-    if (percentUsed > 90 || hasSpike) {
+    if (percentUsed > 900 || hasSpike) {
       return {
         state: 'Heavy',
-        message: 'Money feels light this week.',
+        message: 'Money feels a bit lighter this week.',
         subtext: 'Would you like to pause and reflect?',
       }
-    } else if (percentUsed > 70) {
+    } else if (percentUsed > 700) {
       return {
         state: 'A bit tense',
         message: 'Things are getting a bit tight.',

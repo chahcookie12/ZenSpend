@@ -75,8 +75,8 @@ export const FinanceProvider = ({ children }) => {
     const dailyAvg = weekTotal / 7
     
     // Categorize spending level
-    if (dailyAvg < 20) return 'light'
-    if (dailyAvg < 50) return 'moderate'
+    if (dailyAvg < 200) return 'light'
+    if (dailyAvg < 500) return 'moderate'
     return 'heavy'
   }
 

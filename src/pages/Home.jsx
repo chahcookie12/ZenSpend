@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { storage } from '../utils/storage'
 import { useAuth } from '../context/AuthContext'
+import { formatCurrency } from '../utils/currency'
 
 const Home = ({ onStartBreathing }) => {
   const navigate = useNavigate()
@@ -189,10 +190,10 @@ const Home = ({ onStartBreathing }) => {
                 
                 <div className="flex justify-between text-sm">
                   <span className="text-sage-600">
-                    ${totalSpent.toFixed(0)} used
+                    {formatCurrency(totalSpent)} used
                   </span>
                   <span className="text-sage-500">
-                    ${monthlyBudgetAmount.toFixed(0)} planned
+                    {formatCurrency(monthlyBudgetAmount)} planned
                   </span>
                 </div>
               </div>
@@ -203,7 +204,7 @@ const Home = ({ onStartBreathing }) => {
                     Still available
                   </p>
                   <p className="text-3xl text-sage-700 font-light mt-1">
-                    ${remaining.toFixed(0)}
+                    {formatCurrency(remaining)}
                   </p>
                 </div>
               )}

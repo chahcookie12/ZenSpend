@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { storage } from '../utils/storage'
+import { formatCurrency } from '../utils/currency'
 
 const Money = () => {
   // Budget and Fixed Expenses State
@@ -204,22 +205,17 @@ const Money = () => {
           <h2 className="text-xl text-sage-700 font-light">Monthly flow</h2>
           <div className="space-y-2">
             <label className="block text-sage-600 text-sm ml-1">
-              What would you like to spend this month?
+              What would you like to spend this month? (MAD)
             </label>
-            <div className="relative">
-              <span className="absolute left-5 top-1/2 transform -translate-y-1/2 text-sage-500 text-lg">
-                $
-              </span>
-              <input
-                type="number"
-                value={monthlyBudget}
-                onChange={(e) => setMonthlyBudget(e.target.value)}
-                onBlur={handleBudgetSave}
-                placeholder="0"
-                className="w-full pl-10 pr-5 py-4 bg-white text-sage-700 rounded-2xl text-base
-                         focus:outline-none focus:ring-2 focus:ring-sage-300 transition-all"
-              />
-            </div>
+            <input
+              type="number"
+              value={monthlyBudget}
+              onChange={(e) => setMonthlyBudget(e.target.value)}
+              onBlur={handleBudgetSave}
+              placeholder="0"
+              className="w-full px-5 py-4 bg-white text-sage-700 rounded-2xl text-base
+                       focus:outline-none focus:ring-2 focus:ring-sage-300 transition-all"
+            />
           </div>
         </motion.div>
 
@@ -276,15 +272,13 @@ const Money = () => {
                                  focus:outline-none focus:ring-2 focus:ring-sage-300"
                       />
                       <div className="flex gap-2">
-                        <div className="relative flex-1">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sage-500">
-                            $
-                          </span>
+                        <div className="flex-1">
                           <input
                             type="number"
                             value={editFixedAmount}
                             onChange={(e) => setEditFixedAmount(e.target.value)}
-                            className="w-full pl-8 pr-3 py-2 bg-white text-sage-700 rounded-xl text-sm
+                            placeholder="Amount (MAD)"
+                            className="w-full px-3 py-2 bg-white text-sage-700 rounded-xl text-sm
                                      focus:outline-none focus:ring-2 focus:ring-sage-300"
                           />
                         </div>
@@ -302,7 +296,7 @@ const Money = () => {
                       <div>
                         <p className="text-sage-700 font-light">{expense.name}</p>
                         <p className="text-sage-600 text-sm mt-1">
-                          ${expense.amount.toFixed(2)}
+                          {formatCurrency(expense.amount, true)}
                         </p>
                       </div>
                       <div className="flex gap-2">
@@ -340,16 +334,13 @@ const Money = () => {
                        focus:outline-none focus:ring-2 focus:ring-sage-300 transition-all"
             />
             <div className="flex gap-2">
-              <div className="relative flex-1">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sage-500">
-                  $
-                </span>
+              <div className="flex-1">
                 <input
                   type="number"
                   value={customAmount}
                   onChange={(e) => setCustomAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full pl-8 pr-3 py-3 bg-white text-sage-700 rounded-xl text-sm
+                  placeholder="Amount (MAD)"
+                  className="w-full px-3 py-3 bg-white text-sage-700 rounded-xl text-sm
                            focus:outline-none focus:ring-2 focus:ring-sage-300 transition-all"
                 />
               </div>
@@ -403,18 +394,13 @@ const Money = () => {
                   className="w-full bg-white text-sage-700 rounded-xl py-3 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-sage-300"
                   autoFocus
                 />
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-sage-500">
-                    $
-                  </span>
-                  <input
-                    type="number"
-                    value={newExpense.amount}
-                    onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
-                    placeholder="0.00"
-                    className="w-full pl-8 pr-4 bg-white text-sage-700 rounded-xl py-3 text-sm focus:outline-none focus:ring-2 focus:ring-sage-300"
-                  />
-                </div>
+                <input
+                  type="number"
+                  value={newExpense.amount}
+                  onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
+                  placeholder="Amount (MAD)"
+                  className="w-full px-4 bg-white text-sage-700 rounded-xl py-3 text-sm focus:outline-none focus:ring-2 focus:ring-sage-300"
+                />
                 <div className="flex gap-2">
                   <button
                     onClick={handleAddExpense}
@@ -461,7 +447,7 @@ const Money = () => {
                         </div>
                         <div className="flex items-center gap-3">
                           <p className="text-sage-700 font-light">
-                            ${parseFloat(expense.amount).toFixed(2)}
+                            {formatCurrency(expense.amount, true)}
                           </p>
                           <button
                             onClick={() => handleDeleteExpense(expense.id)}
@@ -497,20 +483,20 @@ const Money = () => {
             <div className="space-y-2 text-sage-600 text-sm">
               <div className="flex justify-between">
                 <span>Monthly flow</span>
-                <span className="font-light">${budget.toFixed(2)}</span>
+                <span className="font-light">{formatCurrency(budget, true)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Fixed expenses</span>
-                <span className="font-light">${totalFixed.toFixed(2)}</span>
+                <span className="font-light">{formatCurrency(totalFixed, true)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Variable expenses</span>
-                <span className="font-light">${currentMonthExpenses.toFixed(2)}</span>
+                <span className="font-light">{formatCurrency(currentMonthExpenses, true)}</span>
               </div>
               <div className="h-px bg-sage-200 my-3" />
               <div className="flex justify-between text-sage-700 text-base">
                 <span>Space to move</span>
-                <span className="font-light">${remaining.toFixed(2)}</span>
+                <span className="font-light">{formatCurrency(remaining, true)}</span>
               </div>
             </div>
           </motion.div>

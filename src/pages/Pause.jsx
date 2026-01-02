@@ -223,17 +223,17 @@ const Pause = () => {
                   className="w-full bg-cream-100 text-sage-700 text-lg rounded-3xl py-6 px-8 focus:outline-none focus:ring-2 focus:ring-sage-300 transition-all"
                   autoFocus
                 />
-                <div className="relative">
-                  <span className="absolute left-8 top-1/2 transform -translate-y-1/2 text-sage-500 text-xl">
-                    $
-                  </span>
+                <div className="space-y-2">
+                  <label className="block text-sage-600 text-sm ml-4">
+                    Price (MAD)
+                  </label>
                   <input
                     type="number"
                     step="0.01"
                     value={itemPrice}
                     onChange={(e) => setItemPrice(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full pl-14 pr-8 bg-cream-100 text-sage-700 text-2xl rounded-3xl py-6 focus:outline-none focus:ring-2 focus:ring-sage-300 transition-all"
+                    placeholder="0"
+                    className="w-full px-8 bg-cream-100 text-sage-700 text-2xl rounded-3xl py-6 focus:outline-none focus:ring-2 focus:ring-sage-300 transition-all"
                   />
                 </div>
                 <button

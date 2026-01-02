@@ -89,21 +89,22 @@ const Chat = () => {
       
       const recentSpendingLevel = getRecentSpendingLevel()
       
-      let financialContext = ''
-      if (monthlyBudget > 0) {
-        financialContext = `
-
-Financial Context (for your awareness, not to mention unless relevant):
-- Monthly income: $${monthlyBudget.toFixed(0)}
-- Spent so far: $${totalSpent.toFixed(0)}
-- Remaining: $${remainingBudget.toFixed(0)}
-- Recent spending: ${recentSpendingLevel}
-${percentUsed > 90 ? '- Budget is tight right now' : percentUsed > 70 ? '- Budget getting tighter' : '- Budget has breathing room'}
-
-Use this context when the user talks about buying something or asks about their spending.
-Keep responses grounded in their actual situation.
-`
-      }
+       let financialContext = ''
+       if (monthlyBudget > 0) {
+         financialContext = `
+ 
+ Financial Context (for your awareness, not to mention unless relevant):
+ - Monthly income: ${monthlyBudget.toFixed(0)} MAD
+ - Spent so far: ${totalSpent.toFixed(0)} MAD
+ - Remaining: ${remainingBudget.toFixed(0)} MAD
+ - Recent spending: ${recentSpendingLevel}
+ ${percentUsed > 90 ? '- Budget is tight right now' : percentUsed > 70 ? '- Budget getting tighter' : '- Budget has breathing room'}
+ 
+ Use this context when the user talks about buying something or asks about their spending.
+ Keep responses grounded in their actual situation.
+ Always mention amounts in MAD (Moroccan Dirham), not dollars.
+ `
+       }
 
       // Build enhanced system prompt based on context
       let systemPrompt = `

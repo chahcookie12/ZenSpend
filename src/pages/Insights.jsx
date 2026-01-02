@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { storage } from '../utils/storage'
+import { formatCurrency } from '../utils/currency'
 
 const Insights = () => {
   const [reflections, setReflections] = useState([])
@@ -281,7 +282,7 @@ const Insights = () => {
                   <div className="flex items-center justify-between text-xs text-sage-600">
                     <span>{day.day}</span>
                     <span className="font-light">
-                      {day.amount > 0 ? `$${day.amount.toFixed(0)}` : '—'}
+                      {day.amount > 0 ? formatCurrency(day.amount) : '—'}
                     </span>
                   </div>
                   <div className="h-2 bg-sage-100 rounded-full overflow-hidden">
@@ -352,7 +353,7 @@ const Insights = () => {
                   <div className="flex items-center justify-between text-xs text-sage-600">
                     <span>{week.label}</span>
                     <span className="font-light">
-                      {week.amount > 0 ? `$${week.amount.toFixed(0)}` : '—'}
+                      {week.amount > 0 ? formatCurrency(week.amount) : '—'}
                     </span>
                   </div>
                   <div className="h-2 bg-sage-100 rounded-full overflow-hidden">

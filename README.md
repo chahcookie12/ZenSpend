@@ -111,13 +111,6 @@ npm run dev
 
 The app will run at `http://localhost:5173`
 
-### DeepSeek API Key
-
-The Chat companion uses an internal API key stored in `.env`:
-
-```bash
-VITE_DEEPSEEK_API_KEY=sk-36155af91f38470eb27a51a6cfeff654
-```
 
 The key is handled internally - users never see or enter it. This is a prototype-level integration suitable for hackathons.
 

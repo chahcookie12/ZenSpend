@@ -13,7 +13,6 @@ npm run dev
 The app will run at `http://localhost:5173`
 
 
-The key is handled internally - users never see or enter it. This is a prototype-level integration suitable for hackathons.
 
 ## Project Structure
 
